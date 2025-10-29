@@ -30,8 +30,12 @@ instance/
 
 # 数据文件（重要：不提交敏感数据）
 data.json
-data/*.json
-backups/
+data/data.json
+data/backups/
+# 允许示例文件
+!data/data.example.json
+!data/.gitkeep
+!data/README.md
 
 # 日志文件
 logs/
