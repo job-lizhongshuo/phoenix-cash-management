@@ -1,0 +1,102 @@
+# ============================================================
+# 凤凰台现金管理系统 - Docker Compose 配置
+# 
+# 使用说明:
+#   启动: docker-compose up -d
+#   停止: docker-compose down
+#   查看日志: docker-compose logs -f
+#   重启: docker-compose restart
+#   查看状态: docker-compose ps
+# ============================================================
+
+# Docker Compose 文件格式版本
+version: '3.8'
+
+services:
+  # 主应用服务
+  xianjin-app:
+    # 构建配置
+    build: .                              # 从当前目录的 Dockerfile 构建
+    container_name: xianjin_cash_system   # 容器名称
+    image: xianjin:latest                 # 镜像标签
+    
+    # 端口映射 (宿主机端口:容器端口)
+    # 宿主机访问 http://localhost:8080 会转发到容器的 8080 端口
+    ports:
+      - "2003:8080"
+    
+    # 数据持久化 - 将容器内目录映射到宿主机
+    # 这样即使容器删除，数据也不会丢失
+    volumes:
+      - ./data:/app/data    # 数据文件目录（交易记录、备份等）
+      - ./logs:/app/logs    # 日志文件目录
+    
+    # 环境变量配置
+    # 用于控制应用的运行环境和行为
+    environment:
+      # Flask 环境（production/development）
+      - FLASK_ENV=${FLASK_ENV:-production}
+      
+      # Flask 调试模式（0=关闭，1=开启）
+      - FLASK_DEBUG=${FLASK_DEBUG:-0}
+      
+      # 应用监听端口
+      - PORT=8080
+      
+      # 数据存储目录
+      - DATA_DIR=/app/data
+      
+      # 日志级别（DEBUG/INFO/WARNING/ERROR）
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      
+      # 会话密钥（生产环境请务必修改！）
+      - SECRET_KEY=${SECRET_KEY:-please-change-this-secret-key}
+    
+    # 资源限制配置
+    # 防止应用占用过多系统资源
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'        # CPU 最大使用：1个核心
+          memory: 1G         # 内存最大使用：1GB
+        reservations:
+          cpus: '0.5'        # CPU 预留：0.5个核心
+          memory: 512M       # 内存预留：512MB
+    
+    # 重启策略
+    # unless-stopped: 容器退出时自动重启（除非手动停止）
+    restart: unless-stopped
+    
+    # 健康检查配置
+    # 定期检查应用是否正常运行
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]  # 检查命令
+      interval: 30s      # 每30秒检查一次
+      timeout: 10s       # 超时时间10秒
+      retries: 3         # 连续失败3次标记为不健康
+      start_period: 10s  # 容器启动后10秒开始检查
+    
+    # 日志配置
+    # 防止日志文件无限增长
+    logging:
+      driver: "json-file"     # 日志驱动
+      options:
+        max-size: "10m"       # 单个日志文件最大10MB
+        max-file: "3"         # 最多保留3个日志文件
+
+# ============================================================
+# 配置说明:
+# 
+# 1. 端口修改:
+#    将 "8080:8080" 改为 "你的端口:8080"
+# 
+# 2. 环境变量:
+#    可以创建 .env 文件来覆盖默认值
+#    例如: echo "SECRET_KEY=your-secret-key" > .env
+# 
+# 3. 资源限制:
+#    根据服务器配置调整 cpus 和 memory 的值
+# 
+# 4. 数据备份:
+#    数据存储在 ./data 目录，定期备份即可
+# ============================================================
